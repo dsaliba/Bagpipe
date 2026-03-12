@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bagpipe</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:          #111213;
+      --bg2:         #161718;
+      --bg3:         #1b1d1e;
+      --surface:     #202224;
+      --surface2:    #272a2c;
+      --border:      #2e3133;
+      --border2:     #3c4044;
+      --text:        #e4e6e8;
+      --text-mid:    #909599;
+      --text-faint:  #52575c;
+      --accent:        #c8102e;
+      --accent-bright: #e01a35;
+      --accent-dim:    #280810;
+      --accent-glow:   rgba(200, 16, 46, 0.16);
+      --green:       #3dba6e;
+      --green-dim:   #0e2a1a;
+      --amber:       #d4903a;
+      --amber-dim:   #2a1c08;
+      --red:         #e05555;
+      --red-dim:     #2e1010;
+      --steel:       #6a9ab0;
+      --steel-dim:   #142030;
+      --gold:        #d4903a;
+      --gold-dim:    #2a1c08;
+      --radius:      5px;
+      --radius-sm:   3px;
+      --radius-lg:   8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      font-size: 13px;
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 0;
+      background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 32px, rgba(255,255,255,0.018) 32px, rgba(255,255,255,0.018) 33px),
+        repeating-linear-gradient(90deg, transparent, transparent 32px, rgba(255,255,255,0.018) 32px, rgba(255,255,255,0.018) 33px);
+    }
+
+    /* Titlebar */
+    .titlebar {
+      height: 48px; background: var(--bg2); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 16px; gap: 12px;
+      flex-shrink: 0; -webkit-app-region: drag; position: relative; z-index: 10;
+    }
+    .titlebar::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, var(--accent) 0%, rgba(200,16,46,0.3) 70%, transparent 100%);
+    }
+    .titlebar-left { display: flex; align-items: center; gap: 10px; flex: 1; -webkit-app-region: no-drag; }
+    .hiro-logo { height: 24px; width: auto; flex-shrink: 0; }
+    .titlebar-right { display: flex; align-items: center; -webkit-app-region: no-drag; background: #e6e6e6; border-radius: 6px; padding: 4px 10px; }
+    .titlebar-divider-logo { width: 1px; height: 20px; background: var(--border2); }
+    .pipe-icon { display: flex; align-items: center; flex-shrink: 0; }
+    .titlebar-name { font-family: 'Cinzel', serif; font-size: 16px; font-weight: 700; color: var(--text); letter-spacing: 0.04em; }
+    .titlebar-name .accent { color: var(--accent); }
+    .titlebar-sep { width: 1px; height: 18px; background: var(--border2); margin: 0 2px; }
+    .titlebar-sub { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-faint); letter-spacing: 0.08em; text-transform: uppercase; }
+
+    /* Layout */
+    .app { flex: 1; display: grid; grid-template-columns: 260px 1fr 288px; overflow: hidden; position: relative; z-index: 1; }
+
+    /* Panels */
+    .panel { display: flex; flex-direction: column; border-right: 1px solid var(--border); overflow: hidden; }
+    .panel:last-child { border-right: none; background: var(--bg2); }
+    .panel-header {
+      height: 40px; padding: 0 12px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0; background: var(--bg2); position: relative;
+    }
+    .panel-header::before {
+      content: ''; position: absolute; left: 0; top: 8px; bottom: 8px;
+      width: 2px; background: var(--accent); border-radius: 1px; opacity: 0.6;
+    }
+    .panel-label { font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-mid); }
+    .panel-title-text { font-size: 11px; font-weight: 500; color: var(--text-mid); font-family: 'IBM Plex Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 210px; }
+    .panel-body { flex: 1; overflow-y: auto; padding: 10px; scrollbar-width: thin; scrollbar-color: var(--border2) transparent; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+    /* Buttons */
+    .btn { padding: 5px 11px; border-radius: var(--radius); border: 1px solid var(--border2); background: var(--surface); color: var(--text-mid); font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500; cursor: pointer; transition: all 0.14s; white-space: nowrap; }
+    .btn:hover { color: var(--text); background: var(--surface2); }
+    .btn-xs { padding: 3px 8px; font-size: 10px; }
+    .btn-danger { border-color: var(--red-dim); color: var(--red); }
+    .btn-danger:hover { background: var(--red-dim); border-color: var(--red); color: var(--red); }
+    .btn-primary {
+      width: 100%; padding: 11px 10px; background: var(--accent); border: none;
+      border-radius: var(--radius); color: #fff; font-family: 'Inter', sans-serif;
+      font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.16s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      letter-spacing: 0.06em; text-transform: uppercase; position: relative; overflow: hidden;
+    }
+    .btn-primary::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%); }
+    .btn-primary:hover { background: var(--accent-bright); transform: translateY(-1px); box-shadow: 0 5px 20px var(--accent-glow); }
+    .btn-primary:disabled { background: var(--surface2); color: var(--text-faint); transform: none; box-shadow: none; cursor: not-allowed; }
+    .btn-primary:disabled::before { display: none; }
+
+    /* Drop zone */
+    .drop-zone { border: 1px dashed var(--border2); border-radius: var(--radius-lg); padding: 18px 14px; text-align: center; cursor: pointer; transition: all 0.16s; margin-bottom: 10px; background: var(--bg3); position: relative; overflow: hidden; }
+    .drop-zone::after { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, var(--accent-dim) 0%, transparent 70%); opacity: 0; transition: opacity 0.16s; }
+    .drop-zone:hover, .drop-zone.over { border-color: var(--accent); }
+    .drop-zone:hover::after, .drop-zone.over::after { opacity: 1; }
+    .drop-icon { font-size: 20px; margin-bottom: 6px; display: block; position: relative; z-index: 1; }
+    .drop-label { font-size: 12px; font-weight: 600; color: var(--text-mid); margin-bottom: 3px; position: relative; z-index: 1; }
+    .drop-ext { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-faint); position: relative; z-index: 1; }
+
+    /* ── Bag group (container for similar bags) ── */
+    .bag-group { margin-bottom: 8px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .bag-group-header {
+      display: flex; align-items: center; gap: 7px;
+      padding: 7px 10px; background: var(--surface);
+      cursor: pointer; transition: background 0.12s;
+      border-bottom: 1px solid transparent;
+      user-select: none;
+    }
+    .bag-group-header:hover { background: var(--surface2); }
+    .bag-group-header.expanded { border-bottom-color: var(--border); }
+    .bag-group-header.active-group { border-left: 2px solid var(--accent); padding-left: 8px; }
+    .bag-group-chevron { font-size: 9px; color: var(--text-faint); transition: transform 0.15s; flex-shrink: 0; }
+    .bag-group-chevron.open { transform: rotate(90deg); }
+    .bag-group-name { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bag-group-count { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-faint); flex-shrink: 0; }
+    .bag-group-stat { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--text-faint); background: var(--bg3); padding: 2px 5px; border-radius: 2px; flex-shrink: 0; }
+
+    /* Individual bag card inside a group */
+    .bag-card {
+      background: var(--bg3); border: none; border-radius: 0;
+      padding: 7px 10px 7px 22px;
+      cursor: pointer; transition: background 0.12s;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+    .bag-card:last-child { border-bottom: none; }
+    .bag-card::before { content: ''; position: absolute; left: 10px; top: 0; bottom: 0; width: 1px; background: var(--border2); }
+    .bag-card:hover { background: var(--surface); }
+    .bag-card.active { background: var(--surface); }
+    .bag-card.active::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent); }
+    .bag-card.active .bag-name { color: var(--text); }
+
+    /* Standalone bag card (no group) */
+    .bag-card-solo {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 9px 10px; margin-bottom: 5px; cursor: pointer; transition: all 0.14s; position: relative;
+    }
+    .bag-card-solo::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent); border-radius: 2px 0 0 2px; opacity: 0; transition: opacity 0.14s; }
+    .bag-card-solo:hover { border-color: var(--border2); background: var(--surface2); }
+    .bag-card-solo:hover::before { opacity: 0.4; }
+    .bag-card-solo.active { border-color: var(--accent); background: var(--bg3); }
+    .bag-card-solo.active::before { opacity: 1; }
+
+    .bag-row1 { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
+    .bag-name { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: var(--text-mid); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .fmt-tag { font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 500; padding: 2px 6px; border-radius: 2px; text-transform: uppercase; letter-spacing: 0.06em; flex-shrink: 0; }
+    .fmt-ros1 { background: var(--red-dim); color: var(--red); }
+    .fmt-ros2 { background: var(--green-dim); color: var(--green); }
+    .fmt-mcap { background: var(--gold-dim); color: var(--gold); }
+    .bag-row2 { display: flex; gap: 10px; }
+    .bag-stat { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-faint); }
+    .bag-stat b { color: var(--text-mid); font-weight: 500; }
+
+    /* Group mode indicator in topic panel header */
+    .group-mode-badge {
+      font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 500;
+      background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(200,16,46,0.3);
+      padding: 2px 7px; border-radius: 2px; text-transform: uppercase; letter-spacing: 0.06em;
+      flex-shrink: 0;
+    }
+
+    /* Topic list */
+    .group-block { margin-bottom: 16px; }
+    .group-heading { display: flex; align-items: center; gap: 6px; padding: 5px 6px; margin-bottom: 4px; border-radius: var(--radius-sm); background: var(--surface); border-left: 2px solid transparent; }
+    .group-heading.heading-video { border-left-color: var(--amber); }
+    .group-heading.heading-data  { border-left-color: var(--steel); }
+    .group-heading-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .dot-video { background: var(--amber); }
+    .dot-data  { background: var(--steel); }
+    .group-heading-label { font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-mid); flex: 1; }
+    .group-heading-count { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-faint); }
+    .group-body { padding: 2px; border-radius: var(--radius); min-height: 28px; transition: background 0.12s; }
+    .group-body.drag-target { background: var(--accent-dim); outline: 1px dashed var(--accent); }
+    .group-empty { padding: 8px 6px; font-size: 11px; color: var(--text-faint); font-style: italic; }
+
+    /* Topic row */
+    .topic-row { display: flex; align-items: center; gap: 7px; padding: 6px 8px; border-radius: var(--radius-sm); margin-bottom: 2px; cursor: grab; transition: background 0.12s; border: 1px solid transparent; }
+    .topic-row:hover { background: var(--surface); border-color: var(--border); }
+    .topic-row.dragging { opacity: 0.3; }
+    .topic-row.drag-over { background: var(--surface2); border-color: var(--border2); }
+    .topic-check { width: 14px; height: 14px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+    .topic-indicator { width: 3px; border-radius: 2px; flex-shrink: 0; align-self: stretch; min-height: 14px; }
+    .ind-video { background: var(--amber); }
+    .ind-data  { background: var(--steel); opacity: 0.8; }
+    .topic-name { font-family: 'IBM Plex Mono', monospace; font-size: 11px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+    .topic-type { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--text-faint); white-space: nowrap; flex-shrink: 0; background: var(--surface); padding: 2px 5px; border-radius: 2px; }
+    .drag-grip { color: var(--border2); font-size: 10px; cursor: grab; flex-shrink: 0; }
+    .topic-row:hover .drag-grip { color: var(--text-faint); }
+
+    /* Export panel */
+    .exp-section { margin-bottom: 18px; }
+    .exp-label { font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-faint); margin-bottom: 7px; }
+    .output-btn { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 9px 10px; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: border-color 0.14s; text-align: left; }
+    .output-btn:hover { border-color: var(--accent); }
+    .output-btn-text { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-faint); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .output-btn-text.set { color: var(--text-mid); }
+    .output-icon { font-size: 13px; flex-shrink: 0; }
+
+    /* Toggles */
+    .toggle-list { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 11px; border-bottom: 1px solid var(--border); }
+    .toggle-row:last-child { border-bottom: none; }
+    .toggle-row-label { font-family: 'Inter', sans-serif; font-size: 12px; color: var(--text-mid); }
+    .toggle { width: 32px; height: 17px; background: var(--surface2); border-radius: 9px; position: relative; cursor: pointer; transition: background 0.18s; flex-shrink: 0; border: 1px solid var(--border2); }
+    .toggle.on { background: var(--accent); border-color: var(--accent); }
+    .toggle::after { content: ''; width: 11px; height: 11px; background: var(--text-faint); border-radius: 50%; position: absolute; top: 2px; left: 2px; transition: left 0.18s, background 0.18s; }
+    .toggle.on::after { left: 17px; background: #fff; }
+
+    /* ── Job queue (progress area) ── */
+    .job-list { display: flex; flex-direction: column; gap: 6px; }
+    .job-row {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 8px 10px;
+      transition: border-color 0.14s;
+    }
+    .job-row.running { border-color: var(--accent); }
+    .job-row.done    { border-color: var(--green-dim); }
+    .job-row.error   { border-color: var(--red-dim); }
+    .job-header { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+    .job-status-dot {
+      width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+      background: var(--border2);
+    }
+    .job-row.running .job-status-dot { background: var(--accent); box-shadow: 0 0 6px var(--accent-glow); animation: pulse 1.2s ease-in-out infinite; }
+    .job-row.done    .job-status-dot { background: var(--green); }
+    .job-row.error   .job-status-dot { background: var(--red); }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .job-name { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-mid); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .job-pct  { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-faint); flex-shrink: 0; }
+    .job-track { height: 2px; background: var(--surface2); border-radius: 2px; overflow: hidden; margin-bottom: 4px; }
+    .job-fill  { height: 100%; border-radius: 2px; transition: width 0.3s ease; background: var(--accent); }
+    .job-row.done .job-fill  { background: var(--green); }
+    .job-row.error .job-fill { background: var(--red); }
+    .job-stage { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--text-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* Empty state */
+    .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 140px; color: var(--text-faint); gap: 8px; }
+    .empty-icon { font-size: 26px; opacity: 0.35; }
+    .empty-msg { font-size: 12px; }
+
+    hr { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+    /* ── Topic search bar ── */
+    .topic-search-bar {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg2);
+      flex-shrink: 0;
+    }
+    .topic-search-icon {
+      color: var(--text-faint);
+      flex-shrink: 0;
+    }
+    .topic-search-input {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--text);
+      caret-color: var(--accent);
+    }
+    .topic-search-input::placeholder { color: var(--text-faint); }
+    .topic-search-clear {
+      background: none;
+      border: none;
+      color: var(--text-faint);
+      font-size: 10px;
+      cursor: pointer;
+      padding: 1px 3px;
+      border-radius: 2px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .topic-search-clear:hover { color: var(--text-mid); background: var(--surface); }
+
+    /* Search highlight */
+    .topic-name mark {
+      background: rgba(200, 16, 46, 0.25);
+      color: var(--text);
+      border-radius: 2px;
+      padding: 0 1px;
+    }
+
+    /* Dim non-matching rows */
+    .topic-row.no-match { display: none; }
+
+    /* Group heading hidden when all children filtered */
+    .group-block.all-hidden { display: none; }
+
+  </style>
+</head>
+<body>
+
+<div class="titlebar">
+  <div class="titlebar-left">
+    <svg class="pipe-icon" width="36" height="20" viewBox="0 0 36 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="7" width="3" height="6" rx="1" fill="#c8102e" opacity="0.9"/>
+      <rect x="3" y="8.5" width="7" height="3" fill="#c8102e" opacity="0.85"/>
+      <rect x="10" y="6.5" width="3" height="7" rx="1" fill="#909599"/>
+      <rect x="13" y="8.5" width="7" height="3" fill="#c8102e" opacity="0.85"/>
+      <rect x="20" y="6.5" width="3" height="7" rx="1" fill="#909599"/>
+      <rect x="23" y="8.5" width="7" height="3" fill="#c8102e" opacity="0.85"/>
+      <rect x="30" y="7" width="3" height="6" rx="1" fill="#c8102e" opacity="0.9"/>
+      <path d="M34 10 L36 10 M34 10 L32.5 8.5 M34 10 L32.5 11.5" stroke="#c8102e" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    <span class="titlebar-name">B<span class="accent">a</span>gpipe</span>
+    <div class="titlebar-sep"></div>
+    <span class="titlebar-sub">ROS Bag Pipeline</span>
+  </div>
+  <div class="titlebar-right">
+    <img src="../assets/hiro-logo.png" class="hiro-logo" alt="HiRo Lab">
+  </div>
+</div>
+
+<div class="app">
+
+  <!-- LEFT: Recordings -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-label">Recordings</span>
+      <div style="display:flex;gap:4px;flex-shrink:0">
+        <button class="btn btn-xs" onclick="addBags()">+ Add</button>
+        <button class="btn btn-xs btn-danger" id="clear-btn" onclick="clearAllBags()" style="display:none">✕ Clear</button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="drop-zone" id="drop-zone"
+           ondragover="dzOver(event)" ondragleave="dzLeave()" ondrop="dzDrop(event)"
+           onclick="addBags()">
+        <span class="drop-icon">🎒</span>
+        <div class="drop-label">Drop bag files here</div>
+        <div class="drop-ext">.bag · .db3 · .mcap</div>
+      </div>
+      <div id="bag-list"></div>
+    </div>
+  </div>
+
+  <!-- MIDDLE: Topics -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-label">Topics</span>
+      <div id="topic-panel-title" class="panel-title-text"></div>
+      <div style="display:flex;gap:4px;flex-shrink:0;align-items:center">
+        <span id="group-badge" class="group-mode-badge" style="display:none">Group</span>
+        <button class="btn btn-xs" onclick="selectAll()">All</button>
+        <button class="btn btn-xs" onclick="selectNone()">None</button>
+      </div>
+    </div>
+    <div class="topic-search-bar">
+      <svg class="topic-search-icon" width="12" height="12" viewBox="0 0 12 12" fill="none">
+        <circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.3"/>
+        <line x1="7.8" y1="7.8" x2="11" y2="11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+      </svg>
+      <input
+        type="text"
+        id="topic-search"
+        class="topic-search-input"
+        placeholder="Filter topics…"
+        oninput="onTopicSearch(this.value)"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button class="topic-search-clear" id="topic-search-clear" onclick="clearTopicSearch()" style="display:none">✕</button>
+    </div>
+    <div class="panel-body" id="topic-body">
+      <div class="empty">
+        <span class="empty-icon">🔩</span>
+        <span class="empty-msg">Select a recording to inspect topics</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Pipeline -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-label">Pipeline</span>
+    </div>
+    <div class="panel-body">
+
+      <div class="exp-section">
+        <div class="exp-label">Output directory</div>
+        <div class="output-btn" onclick="pickOutput()">
+          <span class="output-icon">📁</span>
+          <span class="output-btn-text" id="output-path-text">Choose destination…</span>
+        </div>
+      </div>
+
+      <div class="exp-section">
+        <div class="exp-label">Options</div>
+        <div class="toggle-list">
+          <div class="toggle-row">
+            <span class="toggle-row-label">Generate sync.xml</span>
+            <div class="toggle on" id="toggle-sync" onclick="toggleOpt('sync')"></div>
+          </div>
+          <div class="toggle-row">
+            <span class="toggle-row-label">Export video topics</span>
+            <div class="toggle on" id="toggle-video" onclick="toggleOpt('video')"></div>
+          </div>
+          <div class="toggle-row">
+            <span class="toggle-row-label">Export data topics</span>
+            <div class="toggle on" id="toggle-csv" onclick="toggleOpt('csv')"></div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="export-btn" onclick="startExport()" disabled>
+        <svg width="20" height="12" viewBox="0 0 20 12" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+          <rect x="0" y="4" width="2" height="4" rx="0.5" fill="currentColor" opacity="0.9"/>
+          <rect x="2" y="5" width="4" height="2" fill="currentColor" opacity="0.8"/>
+          <rect x="6" y="3.5" width="2" height="5" rx="0.5" fill="currentColor" opacity="0.7"/>
+          <rect x="8" y="5" width="4" height="2" fill="currentColor" opacity="0.8"/>
+          <rect x="12" y="3.5" width="2" height="5" rx="0.5" fill="currentColor" opacity="0.7"/>
+          <rect x="14" y="5" width="3" height="2" fill="currentColor" opacity="0.8"/>
+          <path d="M17 6 L20 6 M18.2 4.5 L20 6 L18.2 7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Run Pipeline
+      </button>
+
+      <hr>
+
+      <div id="progress-section" style="display:none">
+        <div class="exp-label" style="margin-bottom:8px" id="queue-label">Queue</div>
+        <div class="job-list" id="job-list"></div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+const state = {
+  bags: [],
+  activeContext: null,
+  outputDir: null,
+  opts: { sync: true, video: true, csv: true },
+  topicSelections: {},
+  groups: {},
+  bagGroup: {},
+  topicQuery: '',
+};
+let dragSrc = null;
+let groupSeq = 0;
+
+// ── Grouping logic ─────────────────────────────────────────────────────────────
+// Jaccard similarity between two sets of topic names
+function topicSimilarity(namesA, namesB) {
+  if (!namesA.length || !namesB.length) return 0;
+  const setA = new Set(namesA), setB = new Set(namesB);
+  let intersection = 0;
+  for (const n of setA) if (setB.has(n)) intersection++;
+  return intersection / (setA.size + setB.size - intersection);
+}
+
+const GROUP_THRESHOLD = 0.6; // ≥60% Jaccard overlap → same group
+
+function assignGroup(newBag) {
+  const newNames = newBag.meta.topics.map(t => t.name);
+
+  // Try to find an existing group with sufficient overlap
+  for (const gid of Object.keys(state.groups)) {
+    const group = state.groups[gid];
+    // Compare against the first bag in the group as representative
+    const repBag = state.bags.find(b => b.filePath === group.bagPaths[0]);
+    if (!repBag) continue;
+    const repNames = repBag.meta.topics.map(t => t.name);
+    if (topicSimilarity(newNames, repNames) >= GROUP_THRESHOLD) {
+      group.bagPaths.push(newBag.filePath);
+      state.bagGroup[newBag.filePath] = gid;
+      return gid;
+    }
+  }
+
+  // No match — create a new group
+  const gid = `g${++groupSeq}`;
+  state.groups[gid] = {
+    id: gid,
+    label: newBag.meta.name,
+    bagPaths: [newBag.filePath],
+    collapsed: false,
+  };
+  state.bagGroup[newBag.filePath] = gid;
+  return gid;
+}
+
+// Get the union of topic names across all bags in a group
+function groupTopicUnion(gid) {
+  const group = state.groups[gid];
+  if (!group) return [];
+  const seen = new Map(); // name -> topic object
+  for (const fp of group.bagPaths) {
+    const bag = state.bags.find(b => b.filePath === fp);
+    if (!bag) continue;
+    for (const t of bag.meta.topics) {
+      if (!seen.has(t.name)) seen.set(t.name, t);
+    }
+  }
+  return [...seen.values()];
+}
+
+// Get effective selection for a group (intersection of per-bag selections)
+function groupSelection(gid) {
+  const group = state.groups[gid];
+  if (!group || !group.bagPaths.length) return new Set();
+  // Start with union, then intersect
+  const allTopics = groupTopicUnion(gid).map(t => t.name);
+  return new Set(allTopics.filter(name =>
+    group.bagPaths.every(fp => state.topicSelections[fp]?.has(name))
+  ));
+}
+
+// Apply a selection change to all bags in a group
+function applyGroupSelection(gid, name, checked) {
+  const group = state.groups[gid];
+  if (!group) return;
+  for (const fp of group.bagPaths) {
+    if (!state.topicSelections[fp]) continue;
+    // Only touch topics that exist in this bag
+    const bag = state.bags.find(b => b.filePath === fp);
+    if (!bag) continue;
+    const hasTopic = bag.meta.topics.some(t => t.name === name);
+    if (!hasTopic) continue;
+    if (checked) state.topicSelections[fp].add(name);
+    else state.topicSelections[fp].delete(name);
+  }
+}
+
+// ── Selection inference for new bags ──────────────────────────────────────────
+function inferSelectionForBag(newTopicNames) {
+  if (state.bags.length === 0) return null;
+  let best = null, bestScore = -1;
+  for (const existing of state.bags) {
+    const existingSel = state.topicSelections[existing.filePath];
+    if (!existingSel) continue;
+    const overlap = newTopicNames.filter(n => existingSel.has(n)).length;
+    if (overlap > bestScore) { bestScore = overlap; best = existingSel; }
+  }
+  return bestScore > 0 ? best : null;
+}
+
+// ── Add bags ──────────────────────────────────────────────────────────────────
+async function addBags() {
+  let paths;
+  try { paths = await window.rosApi.openBags(); }
+  catch (e) { console.error('openBags failed:', e); return; }
+  if (!paths || !paths.length) return;
+
+  for (const fp of paths) {
+    if (state.bags.find(b => b.filePath === fp)) continue;
+    try {
+      const meta = await window.rosApi.loadBagMeta(fp);
+      if (!meta || !meta.success) {
+        console.error('Failed to load bag:', fp, meta?.error);
+        continue;
+      }
+      const bag = { filePath: fp, meta };
+      state.bags.push(bag);
+      const allTopics = (meta.topics || []).map(t => t.name);
+      const ref = inferSelectionForBag(allTopics);
+      state.topicSelections[fp] = ref
+        ? new Set(allTopics.filter(n => ref.has(n)))
+        : new Set(allTopics);
+      assignGroup(bag);
+    } catch (e) {
+      console.error('Error loading bag:', fp, e);
+    }
+  }
+
+  renderBagList();
+
+  // Auto-activate first context if none set
+  if (!state.activeContext && state.bags.length > 0) {
+    const firstBag = state.bags[0];
+    const gid = state.bagGroup[firstBag.filePath];
+    const group = state.groups[gid];
+    if (group && group.bagPaths.length > 1) {
+      setActiveContext('group', gid);
+    } else {
+      setActiveContext('bag', firstBag.filePath);
+    }
+  } else if (state.activeContext) {
+    // Re-render topics in case a new bag joined the active group
+    renderTopics();
+  }
+}
+
+// ── Render bag list ───────────────────────────────────────────────────────────
+function renderBagList() {
+  const el = document.getElementById('bag-list');
+  el.innerHTML = '';
+
+  // Show clear button only when bags are loaded
+  const clearBtn = document.getElementById('clear-btn');
+  if (clearBtn) clearBtn.style.display = state.bags.length > 0 ? '' : 'none';
+
+  // Render each group
+  const renderedBags = new Set();
+  for (const gid of Object.keys(state.groups)) {
+    const group = state.groups[gid];
+    if (!group.bagPaths.length) continue;
+
+    const isActiveGroup = state.activeContext?.type === 'group' && state.activeContext?.id === gid;
+    const hasActiveBag  = state.activeContext?.type === 'bag' && group.bagPaths.includes(state.activeContext?.id);
+
+    if (group.bagPaths.length === 1) {
+      // Solo bag — render as flat card
+      const fp = group.bagPaths[0];
+      const bag = state.bags.find(b => b.filePath === fp);
+      if (!bag) continue;
+      renderedBags.add(fp);
+      el.appendChild(buildSoloBagCard(bag, isActiveGroup || hasActiveBag));
+    } else {
+      // Group of bags
+      group.bagPaths.forEach(fp => renderedBags.add(fp));
+      el.appendChild(buildGroupBlock(group, isActiveGroup, hasActiveBag));
+    }
+  }
+  updateExportBtn();
+}
+
+function buildSoloBagCard(bag, active) {
+  const m = bag.meta;
+  const dur = (m.endTimeSec && m.startTimeSec) ? (m.endTimeSec - m.startTimeSec).toFixed(1) + 's' : '?';
+  const fmt = fmtTag(m.format);
+  const sel = state.topicSelections[bag.filePath]?.size ?? 0;
+
+  const card = document.createElement('div');
+  card.className = 'bag-card-solo' + (active ? ' active' : '');
+  card.innerHTML = `
+    <div class="bag-row1">
+      <span class="bag-name" title="${m.filePath}">${m.name}</span>
+      <span class="fmt-tag fmt-${fmt}">${fmt}</span>
+    </div>
+    <div class="bag-row2">
+      <span class="bag-stat"><b>${sel}</b>/${m.topics.length} topics</span>
+      <span class="bag-stat"><b>${dur}</b></span>
+    </div>`;
+  card.onclick = () => setActiveContext('bag', bag.filePath);
+  return card;
+}
+
+function buildGroupBlock(group, isActiveGroup, hasActiveBag) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'bag-group';
+
+  // Calculate group stats
+  const totalSel = group.bagPaths.reduce((sum, fp) => sum + (state.topicSelections[fp]?.size ?? 0), 0);
+  const bagCount = group.bagPaths.length;
+  const unionCount = groupTopicUnion(group.id).length;
+
+  const header = document.createElement('div');
+  header.className = 'bag-group-header'
+    + (group.collapsed ? '' : ' expanded')
+    + (isActiveGroup ? ' active-group' : '');
+  header.innerHTML = `
+    <span class="bag-group-chevron ${group.collapsed ? '' : 'open'}">▶</span>
+    <span class="bag-group-name">${group.label}</span>
+    <span class="bag-group-stat">${bagCount} bags</span>
+    <span class="bag-group-count">${unionCount} topics</span>`;
+
+  header.onclick = (e) => {
+    // Click on header → set group as active context (topic panel shows union)
+    setActiveContext('group', group.id);
+  };
+
+  // Chevron toggles collapse without changing context
+  header.querySelector('.bag-group-chevron').onclick = (e) => {
+    e.stopPropagation();
+    group.collapsed = !group.collapsed;
+    requestAnimationFrame(() => renderBagList());
+  };
+
+  wrapper.appendChild(header);
+
+  if (!group.collapsed) {
+    const bagList = document.createElement('div');
+    for (const fp of group.bagPaths) {
+      const bag = state.bags.find(b => b.filePath === fp);
+      if (!bag) continue;
+      const m = bag.meta;
+      const dur = (m.endTimeSec && m.startTimeSec) ? (m.endTimeSec - m.startTimeSec).toFixed(1) + 's' : '?';
+      const fmt = fmtTag(m.format);
+      const sel = state.topicSelections[fp]?.size ?? 0;
+      const isActiveBag = state.activeContext?.type === 'bag' && state.activeContext?.id === fp;
+
+      const card = document.createElement('div');
+      card.className = 'bag-card' + (isActiveBag ? ' active' : '');
+      card.innerHTML = `
+        <div class="bag-row1">
+          <span class="bag-name" title="${m.filePath}">${m.name}</span>
+          <span class="fmt-tag fmt-${fmt}">${fmt}</span>
+        </div>
+        <div class="bag-row2">
+          <span class="bag-stat"><b>${sel}</b>/${m.topics.length}</span>
+          <span class="bag-stat">${dur}</span>
+        </div>`;
+      card.onclick = () => setActiveContext('bag', fp);
+      bagList.appendChild(card);
+    }
+    wrapper.appendChild(bagList);
+  }
+
+  return wrapper;
+}
+
+function fmtTag(format) {
+  if (format === 'ros1') return 'ros1';
+  if (format === 'mcap') return 'mcap';
+  return 'ros2';
+}
+
+// ── Active context + topic panel ──────────────────────────────────────────────
+function setActiveContext(type, id) {
+  state.activeContext = { type, id };
+  // Clear search when switching bags/groups
+  state.topicQuery = '';
+  const searchEl = document.getElementById('topic-search');
+  if (searchEl) { searchEl.value = ''; }
+  const clearEl = document.getElementById('topic-search-clear');
+  if (clearEl) { clearEl.style.display = 'none'; }
+  requestAnimationFrame(() => {
+    renderBagList();
+    renderTopics();
+  });
+}
+
+function renderTopics() {
+  const ctx = state.activeContext;
+  if (!ctx) return;
+
+  const body = document.getElementById('topic-body');
+  const titleEl = document.getElementById('topic-panel-title');
+  const badgeEl = document.getElementById('group-badge');
+
+  let topics, sel, filePath, isGroup;
+
+  if (ctx.type === 'group') {
+    const group = state.groups[ctx.id];
+    if (!group) return;
+    topics = groupTopicUnion(ctx.id);
+    sel = groupSelection(ctx.id);
+    filePath = ctx.id; // used as key for group-mode changes
+    isGroup = true;
+    titleEl.textContent = `${group.label} (${group.bagPaths.length} bags)`;
+    badgeEl.style.display = '';
+  } else {
+    const bag = state.bags.find(b => b.filePath === ctx.id);
+    if (!bag) return;
+    topics = bag.meta.topics;
+    sel = state.topicSelections[ctx.id];
+    filePath = ctx.id;
+    isGroup = false;
+    titleEl.textContent = bag.meta.name;
+    badgeEl.style.display = 'none';
+  }
+
+  const video = topics.filter(t => t.isVideo);
+  const data  = topics.filter(t => !t.isVideo);
+  body.innerHTML = '';
+  buildGroup(body, 'Video', video, sel, filePath, 'video', isGroup);
+  buildGroup(body, 'Data',  data,  sel, filePath, 'data',  isGroup);
+}
+
+function buildGroup(container, label, topics, sel, contextId, kind, isGroup) {
+  const query = state.topicQuery;
+  const filtered = query
+    ? topics.filter(t => t.name.toLowerCase().includes(query) || (t.type||'').toLowerCase().includes(query))
+    : topics;
+
+  const block = document.createElement('div');
+  block.className = 'group-block';
+
+  // Hide the whole section if nothing matches
+  if (query && filtered.length === 0) {
+    block.classList.add('all-hidden');
+    container.appendChild(block);
+    return;
+  }
+
+  const selCount = topics.filter(t => sel.has(t.name)).length;
+  const heading = document.createElement('div');
+  heading.className = `group-heading heading-${kind}`;
+  // Show match count when filtering
+  const countLabel = query
+    ? `${filtered.length} match${filtered.length !== 1 ? 'es' : ''}`
+    : `${selCount} / ${topics.length}`;
+  heading.innerHTML = `
+    <span class="group-heading-dot dot-${kind}"></span>
+    <span class="group-heading-label">${label}</span>
+    <span class="group-heading-count">${countLabel}</span>`;
+
+  const body = document.createElement('div');
+  body.className = 'group-body';
+  body.addEventListener('dragover', e => { e.preventDefault(); body.classList.add('drag-target'); });
+  body.addEventListener('dragleave', () => body.classList.remove('drag-target'));
+  body.addEventListener('drop', e => { e.preventDefault(); body.classList.remove('drag-target'); if (dragSrc) body.appendChild(dragSrc); });
+
+  if (!filtered.length) {
+    body.innerHTML = `<div class="group-empty">No ${label.toLowerCase()} topics</div>`;
+  } else {
+    filtered.forEach(t => body.appendChild(buildTopicRow(t, sel, contextId, kind, isGroup, query)));
+  }
+  block.appendChild(heading);
+  block.appendChild(body);
+  container.appendChild(block);
+}
+
+function buildTopicRow(topic, sel, contextId, kind, isGroup, query = '') {
+  const row = document.createElement('div');
+  row.className = 'topic-row';
+  row.draggable = !query; // disable drag when filtered — reordering filtered results is confusing
+  const checked = sel.has(topic.name);
+  const shortType = (topic.type || 'unknown').split('/').pop();
+  const nameHtml = highlightMatch(topic.name, query);
+
+  row.innerHTML = `
+    <span class="drag-grip" style="${query ? 'opacity:0.2;pointer-events:none' : ''}">⠿</span>
+    <input type="checkbox" class="topic-check" ${checked ? 'checked' : ''}>
+    <span class="topic-indicator ind-${kind}"></span>
+    <span class="topic-name" title="${topic.name}">${nameHtml}</span>
+    <span class="topic-type">${shortType}</span>`;
+
+  row.querySelector('.topic-check').addEventListener('change', e => {
+    if (isGroup) {
+      applyGroupSelection(contextId, topic.name, e.target.checked);
+    } else {
+      const s = state.topicSelections[contextId];
+      if (e.target.checked) s.add(topic.name); else s.delete(topic.name);
+    }
+    updateExportBtn();
+    renderTopics();
+    renderBagList();
+  });
+
+  row.addEventListener('dragstart', () => { dragSrc = row; setTimeout(() => row.classList.add('dragging'), 0); });
+  row.addEventListener('dragend',   () => { row.classList.remove('dragging'); dragSrc = null; });
+  row.addEventListener('dragover',  e => { e.preventDefault(); row.classList.add('drag-over'); });
+  row.addEventListener('dragleave', () => row.classList.remove('drag-over'));
+  row.addEventListener('drop', e => { e.preventDefault(); row.classList.remove('drag-over'); if (dragSrc && dragSrc !== row) row.parentNode.insertBefore(dragSrc, row); });
+  return row;
+}
+
+function selectAll() {
+  const ctx = state.activeContext;
+  if (!ctx) return;
+  if (ctx.type === 'group') {
+    const topics = groupTopicUnion(ctx.id);
+    const group = state.groups[ctx.id];
+    for (const fp of group.bagPaths) {
+      const bag = state.bags.find(b => b.filePath === fp);
+      if (!bag) continue;
+      state.topicSelections[fp] = new Set(bag.meta.topics.map(t => t.name));
+    }
+  } else {
+    const bag = state.bags.find(b => b.filePath === ctx.id);
+    if (!bag) return;
+    state.topicSelections[ctx.id] = new Set(bag.meta.topics.map(t => t.name));
+  }
+  renderTopics(); renderBagList(); updateExportBtn();
+}
+
+function selectNone() {
+  const ctx = state.activeContext;
+  if (!ctx) return;
+  if (ctx.type === 'group') {
+    const group = state.groups[ctx.id];
+    for (const fp of group.bagPaths) {
+      state.topicSelections[fp] = new Set();
+    }
+  } else {
+    state.topicSelections[ctx.id] = new Set();
+  }
+  renderTopics(); renderBagList(); updateExportBtn();
+}
+
+// ── Export ────────────────────────────────────────────────────────────────────
+async function pickOutput() {
+  const dir = await window.rosApi.openOutputDir();
+  if (!dir) return;
+  state.outputDir = dir;
+  const el = document.getElementById('output-path-text');
+  el.textContent = dir;
+  el.classList.add('set');
+  updateExportBtn();
+}
+
+function updateExportBtn() {
+  const ready = !!state.outputDir
+    && state.bags.length > 0
+    && state.bags.some(b => (state.topicSelections[b.filePath]?.size ?? 0) > 0);
+  document.getElementById('export-btn').disabled = !ready;
+}
+
+function toggleOpt(key) {
+  state.opts[key] = !state.opts[key];
+  document.getElementById(`toggle-${key}`).classList.toggle('on', state.opts[key]);
+}
+
+// ── Job queue rendering ───────────────────────────────────────────────────────
+const jobs = {}; // { [bagPath]: { el, fillEl, stageEl, pctEl, status } }
+
+function initJobList() {
+  const section = document.getElementById('progress-section');
+  const listEl  = document.getElementById('job-list');
+  section.style.display = '';
+  listEl.innerHTML = '';
+  const bagPaths = state.bags.map(b => b.filePath);
+
+  for (const fp of bagPaths) {
+    const bag = state.bags.find(b => b.filePath === fp);
+    if (!bag) continue;
+    const sel = (state.topicSelections[fp]?.size ?? 0);
+    if (sel === 0) continue;
+
+    const row = document.createElement('div');
+    row.className = 'job-row';
+    row.innerHTML = `
+      <div class="job-header">
+        <span class="job-status-dot"></span>
+        <span class="job-name">${bag.meta.name}</span>
+        <span class="job-pct">—</span>
+      </div>
+      <div class="job-track"><div class="job-fill" style="width:0%"></div></div>
+      <div class="job-stage">queued</div>`;
+
+    listEl.appendChild(row);
+    jobs[fp] = {
+      el:      row,
+      fillEl:  row.querySelector('.job-fill'),
+      stageEl: row.querySelector('.job-stage'),
+      pctEl:   row.querySelector('.job-pct'),
+      status:  'queued',
+    };
+  }
+
+  document.getElementById('queue-label').textContent =
+    `Queue — ${Object.keys(jobs).length} job${Object.keys(jobs).length !== 1 ? 's' : ''}`;
+}
+
+function updateJob(fp, pct, stage, status) {
+  const job = jobs[fp];
+  if (!job) return;
+  if (status) {
+    job.status = status;
+    job.el.className = 'job-row ' + status;
+  }
+  if (pct != null) {
+    job.fillEl.style.width = pct + '%';
+    job.pctEl.textContent = pct + '%';
+  }
+  if (stage) job.stageEl.textContent = stage;
+}
+
+async function startExport() {
+  // Build per-bag topic selection
+  const bagPaths = state.bags.map(b => b.filePath);
+  const topicSelection = {};
+  for (const bag of state.bags) {
+    const meta = Object.fromEntries(bag.meta.topics.map(t => [t.name, t]));
+    let topics = [...(state.topicSelections[bag.filePath] || [])];
+    topics = topics.filter(t => {
+      const m = meta[t]; if (!m) return true;
+      if (m.isVideo && !state.opts.video) return false;
+      if (!m.isVideo && !state.opts.csv) return false;
+      return true;
+    });
+    topicSelection[bag.filePath] = topics;
+  }
+
+  document.getElementById('export-btn').disabled = true;
+  initJobList();
+
+  // Track which bag is currently active in the stream
+  let currentBagPath = null;
+
+  window.rosApi.offProgress();
+  window.rosApi.onProgress(info => {
+    if (info.stage === 'complete') {
+      // Mark all running jobs as done
+      for (const fp of Object.keys(jobs)) {
+        if (jobs[fp].status === 'running') updateJob(fp, 100, 'done', 'done');
+      }
+      document.getElementById('export-btn').disabled = false;
+      document.getElementById('queue-label').textContent = 'Queue — complete';
+      return;
+    }
+
+    // Identify which bag this progress event belongs to
+    if (info.bag) {
+      const matchedBag = state.bags.find(b => b.meta.name === info.bag || b.filePath === info.bag);
+      if (matchedBag) {
+        const fp = matchedBag.filePath;
+        // If we've moved to a new bag, mark the previous one done
+        if (currentBagPath && currentBagPath !== fp && jobs[currentBagPath]?.status === 'running') {
+          updateJob(currentBagPath, 100, 'done', 'done');
+        }
+        currentBagPath = fp;
+        // Mark as running if it was queued
+        if (jobs[fp]?.status === 'queued') updateJob(fp, 0, 'starting…', 'running');
+
+        const stage = [info.topic, info.stage].filter(Boolean).join(' / ');
+        updateJob(fp, info.pct ?? null, stage || null, null);
+      }
+    }
+  });
+
+  await window.rosApi.exportBags({
+    bagPaths, outputDir: state.outputDir,
+    topicSelection, generateSync: state.opts.sync,
+  });
+}
+
+// ── Clear all bags ────────────────────────────────────────────────────────────
+function clearAllBags() {
+  state.bags = [];
+  state.activeContext = null;
+  state.topicSelections = {};
+  state.groups = {};
+  state.bagGroup = {};
+  state.topicQuery = '';
+  groupSeq = 0;
+
+  // Reset search input
+  const searchEl = document.getElementById('topic-search');
+  if (searchEl) searchEl.value = '';
+  const clearEl = document.getElementById('topic-search-clear');
+  if (clearEl) clearEl.style.display = 'none';
+
+  // Reset topic panel
+  document.getElementById('topic-body').innerHTML = `
+    <div class="empty">
+      <span class="empty-icon">🔩</span>
+      <span class="empty-msg">Select a recording to inspect topics</span>
+    </div>`;
+  document.getElementById('topic-panel-title').textContent = '';
+  document.getElementById('group-badge').style.display = 'none';
+
+  // Reset progress section
+  document.getElementById('progress-section').style.display = 'none';
+
+  renderBagList();
+  updateExportBtn();
+}
+
+// ── Topic search ──────────────────────────────────────────────────────────────
+function onTopicSearch(val) {
+  state.topicQuery = val.trim().toLowerCase();
+  document.getElementById('topic-search-clear').style.display = val ? '' : 'none';
+  renderTopics();
+}
+
+function clearTopicSearch() {
+  state.topicQuery = '';
+  document.getElementById('topic-search').value = '';
+  document.getElementById('topic-search-clear').style.display = 'none';
+  renderTopics();
+}
+
+// Highlight query matches in a topic name string, returns HTML
+function highlightMatch(name, query) {
+  if (!query) return escHtml(name);
+  const idx = name.toLowerCase().indexOf(query);
+  if (idx === -1) return escHtml(name);
+  return escHtml(name.slice(0, idx))
+    + '<mark>' + escHtml(name.slice(idx, idx + query.length)) + '</mark>'
+    + escHtml(name.slice(idx + query.length));
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── File drop ──────────────────────────────────────────────────────────────────
+function dzOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('over'); }
+function dzLeave() { document.getElementById('drop-zone').classList.remove('over'); }
+async function dzDrop(e) {
+  e.preventDefault(); dzLeave();
+  const files = [...e.dataTransfer.files].map(f => f.path).filter(p => /\.(bag|db3|mcap)$/.test(p));
+  for (const fp of files) {
+    if (state.bags.find(b => b.filePath === fp)) continue;
+    try {
+      const meta = await window.rosApi.loadBagMeta(fp);
+      if (!meta || !meta.success) { console.error('Failed:', meta?.error); continue; }
+      const bag = { filePath: fp, meta };
+      state.bags.push(bag);
+      const allTopics = (meta.topics || []).map(t => t.name);
+      const ref = inferSelectionForBag(allTopics);
+      state.topicSelections[fp] = ref
+        ? new Set(allTopics.filter(n => ref.has(n)))
+        : new Set(allTopics);
+      assignGroup(bag);
+    } catch (e) {
+      console.error('Error loading dropped bag:', fp, e);
+    }
+  }
+  renderBagList();
+  if (!state.activeContext && state.bags.length > 0) {
+    const firstBag = state.bags[0];
+    const gid = state.bagGroup[firstBag.filePath];
+    const group = state.groups[gid];
+    setActiveContext(
+      group && group.bagPaths.length > 1 ? 'group' : 'bag',
+      group && group.bagPaths.length > 1 ? gid : firstBag.filePath
+    );
+  }
+}
+</script>
+</body>
+</html>
